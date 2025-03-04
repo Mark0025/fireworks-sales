@@ -1,79 +1,113 @@
 pipeline {
-    agent {
-        label 'docker-agent-alpine'
+    agent { 
+        node {
+            label 'docker-agent-alpine'
+        }
     }
 
     environment {
         // Environment variables
         NEXT_PUBLIC_API_URL = credentials('NEXT_PUBLIC_API_URL')
+        // Docker registry credentials
+        DOCKER_REGISTRY = credentials('DOCKER_REGISTRY_CREDENTIALS')
+    }
+
+    options {
+        // Add timestamps to console output
+        timestamps()
+        // Set timeout
+        timeout(time: 30, unit: 'MINUTES')
     }
 
     stages {
         stage('Setup') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
             steps {
-                // Install dependencies
-                sh 'npm install -g pnpm'
-                sh 'pnpm install'
+                echo "Setting up..."
+                sh '''
+                # Install pnpm
+                npm install -g pnpm
                 
-                // Display versions for debugging
-                sh 'node --version'
-                sh 'pnpm --version'
+                # Install dependencies
+                pnpm install
+                
+                # Display versions for debugging
+                node --version
+                pnpm --version
+                '''
             }
         }
 
         stage('Lint & Type Check') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
             steps {
-                // Run ESLint and TypeScript type checking
-                sh 'pnpm run lint'
-                sh 'pnpm run type-check'
+                echo "Linting and type checking..."
+                sh '''
+                # Run ESLint and TypeScript type checking
+                pnpm run lint
+                pnpm run type-check
+                '''
             }
         }
 
         stage('Test') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
             steps {
-                // Run tests
-                sh 'pnpm test'
+                echo "Testing..."
+                sh '''
+                # Run tests
+                pnpm test
+                '''
             }
         }
 
         stage('Build') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
+            steps {
+                echo "Building..."
+                sh '''
+                # Build the Next.js application
+                pnpm run build
+                '''
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                echo "Building Docker image..."
+                script {
+                    def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    def buildNumber = env.BUILD_NUMBER ?: "local"
+                    def dockerTag = "${branch}-${buildNumber}"
+                    
+                    // Build Docker image
+                    sh "docker build -t fireworks-app:${dockerTag} ."
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            when {
+                expression { 
+                    def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    return branch == 'develop' || branch == 'staging' || branch == 'main'
                 }
             }
             steps {
-                // Build the Next.js application
-                sh 'pnpm run build'
+                echo "Pushing Docker image..."
+                script {
+                    def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    def buildNumber = env.BUILD_NUMBER ?: "local"
+                    def dockerTag = "${branch}-${buildNumber}"
+                    
+                    // Login to Docker registry and push
+                    // Note: You'll need to configure DOCKER_REGISTRY_CREDENTIALS in Jenkins
+                    sh """
+                    echo \${DOCKER_REGISTRY_PSW} | docker login -u \${DOCKER_REGISTRY_USR} --password-stdin
+                    docker tag fireworks-app:${dockerTag} \${DOCKER_REGISTRY_USR}/fireworks-app:${dockerTag}
+                    docker push \${DOCKER_REGISTRY_USR}/fireworks-app:${dockerTag}
+                    """
+                }
             }
         }
 
         stage('Deploy') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    reuseNode true
-                }
-            }
             steps {
                 script {
                     def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
@@ -101,6 +135,8 @@ pipeline {
     post {
         always {
             cleanWs()
+            // Clean up Docker images to prevent disk space issues
+            sh 'docker system prune -f || true'
         }
         success {
             echo 'Build and deployment successful!'
