@@ -6,19 +6,19 @@ pipeline {
     environment {
         // Environment variables
         NEXT_PUBLIC_API_URL = credentials('NEXT_PUBLIC_API_URL')
-        // Database URLs for different environments
-        DEV_DATABASE_URL = credentials('DEV_DATABASE_URL')
-        STAGING_DATABASE_URL = credentials('STAGING_DATABASE_URL')
-        PRODUCTION_DATABASE_URL = credentials('PRODUCTION_DATABASE_URL')
     }
 
     stages {
         stage('Setup') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
             steps {
-                // Install pnpm globally
+                // Install dependencies
                 sh 'npm install -g pnpm'
-                
-                // Install dependencies using pnpm
                 sh 'pnpm install'
                 
                 // Display versions for debugging
@@ -28,64 +28,70 @@ pipeline {
         }
 
         stage('Lint & Type Check') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
             steps {
                 // Run ESLint and TypeScript type checking
                 sh 'pnpm run lint'
-                sh 'pnpm type-check'
-            }
-        }
-
-        stage('Generate Prisma Client') {
-            steps {
-                // Generate Prisma client based on schema
-                sh 'pnpm prisma generate'
+                sh 'pnpm run type-check'
             }
         }
 
         stage('Test') {
-            steps {
-                // Set test database URL
-                withEnv(['DATABASE_URL=$DEV_DATABASE_URL']) {
-                    // Run tests (when implemented)
-                    echo 'Tests will be implemented later'
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
                 }
+            }
+            steps {
+                // Run tests
+                sh 'pnpm test'
             }
         }
 
         stage('Build') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
             steps {
                 // Build the Next.js application
-                sh 'pnpm build'
+                sh 'pnpm run build'
             }
         }
 
         stage('Deploy') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'develop') {
+                    def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    
+                    echo "Current branch: ${branch}"
+                    
+                    if (branch == 'develop') {
                         // Deploy to development
-                        withEnv(['DATABASE_URL=$DEV_DATABASE_URL']) {
-                            sh 'echo "Deploying to development environment"'
-                            sh 'pnpm prisma migrate deploy'
-                            sh 'pnpm deploy:dev'
-                        }
-                    } else if (env.BRANCH_NAME == 'staging') {
+                        sh 'pnpm run deploy:dev'
+                    } else if (branch == 'staging') {
                         // Deploy to staging
-                        withEnv(['DATABASE_URL=$STAGING_DATABASE_URL']) {
-                            sh 'echo "Deploying to staging environment"'
-                            sh 'pnpm prisma migrate deploy'
-                            sh 'pnpm deploy:staging'
-                        }
-                    } else if (env.BRANCH_NAME == 'main') {
+                        sh 'pnpm run deploy:staging'
+                    } else if (branch == 'main') {
                         // Deploy to production
                         input message: 'Deploy to production?'
-                        withEnv(['DATABASE_URL=$PRODUCTION_DATABASE_URL']) {
-                            sh 'echo "Deploying to production environment"'
-                            sh 'pnpm prisma migrate deploy'
-                            sh 'pnpm deploy:prod'
-                        }
+                        sh 'pnpm run deploy:prod'
                     } else {
-                        echo "Branch ${env.BRANCH_NAME} does not deploy automatically"
+                        echo "Branch ${branch} does not deploy automatically"
                     }
                 }
             }
@@ -93,11 +99,15 @@ pipeline {
     }
 
     post {
+        always {
+            cleanWs()
+        }
         success {
             echo 'Build and deployment successful!'
         }
         failure {
             echo 'Build or deployment failed!'
+            echo 'Sending notification...'
         }
     }
-} 
+}
