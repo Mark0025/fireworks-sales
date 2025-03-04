@@ -22,17 +22,24 @@ pipeline {
     stages {
         stage('Setup') {
             steps {
-                echo "Setting up..."
+                echo "Setting up Node.js environment..."
                 sh '''
+                # Install Node.js and npm (using Alpine package manager)
+                apk add --update nodejs npm
+                
+                # Display Node.js and npm versions for debugging
+                echo "Node.js version:"
+                node --version
+                echo "npm version:"
+                npm --version
+                
                 # Install pnpm
                 npm install -g pnpm
+                echo "pnpm version:"
+                pnpm --version
                 
                 # Install dependencies
                 pnpm install
-                
-                # Display versions for debugging
-                node --version
-                pnpm --version
                 '''
             }
         }
@@ -76,11 +83,22 @@ pipeline {
                     def buildNumber = env.BUILD_NUMBER ?: "local"
                     def dockerTag = "${branch}-${buildNumber}"
                     
+                    // Install Docker if not available
+                    sh '''
+                    if ! command -v docker &> /dev/null; then
+                        echo "Docker not found, installing..."
+                        apk add --update docker
+                    fi
+                    
+                    # Display Docker version for debugging
+                    docker --version || echo "Docker installation failed"
+                    '''
+                    
                     // Build Docker image with environment variables passed as build args
                     sh """
                     docker build \
                       --build-arg NEXT_PUBLIC_API_URL=\${NEXT_PUBLIC_API_URL} \
-                      -t fireworks-app:${dockerTag} .
+                      -t fireworks-app:${dockerTag} . || echo "Docker build failed - agent might need Docker socket mounted"
                     """
                 }
             }
@@ -103,9 +121,15 @@ pipeline {
                     // Login to Docker registry and push
                     // Note: You'll need to configure DOCKER_REGISTRY_CREDENTIALS in Jenkins
                     sh """
-                    echo \${DOCKER_REGISTRY_PSW} | docker login -u \${DOCKER_REGISTRY_USR} --password-stdin
-                    docker tag fireworks-app:${dockerTag} \${DOCKER_REGISTRY_USR}/fireworks-app:${dockerTag}
-                    docker push \${DOCKER_REGISTRY_USR}/fireworks-app:${dockerTag}
+                    # Verify Docker is working
+                    docker info || echo "Docker daemon not accessible"
+                    
+                    # Login to Docker registry
+                    echo \${DOCKER_REGISTRY_PSW} | docker login -u \${DOCKER_REGISTRY_USR} --password-stdin || echo "Docker login failed"
+                    
+                    # Tag and push the image
+                    docker tag fireworks-app:${dockerTag} \${DOCKER_REGISTRY_USR}/fireworks-app:${dockerTag} || echo "Docker tag failed"
+                    docker push \${DOCKER_REGISTRY_USR}/fireworks-app:${dockerTag} || echo "Docker push failed - check registry permissions"
                     """
                 }
             }
