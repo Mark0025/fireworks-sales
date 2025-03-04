@@ -1,18 +1,15 @@
 pipeline {
     agent {
-        docker {
-            image 'node:18-alpine'
-            args '-u root'
-        }
+        label 'docker-agent-alpine'
     }
 
     environment {
         // Environment variables
-        NEXT_PUBLIC_API_URL = credentials('next-public-api-url')
+        NEXT_PUBLIC_API_URL = credentials('NEXT_PUBLIC_API_URL')
         // Database URLs for different environments
-        DEV_DATABASE_URL = credentials('dev-database-url')
-        STAGING_DATABASE_URL = credentials('staging-database-url')
-        PRODUCTION_DATABASE_URL = credentials('production-database-url')
+        DEV_DATABASE_URL = credentials('DEV_DATABASE_URL')
+        STAGING_DATABASE_URL = credentials('STAGING_DATABASE_URL')
+        PRODUCTION_DATABASE_URL = credentials('PRODUCTION_DATABASE_URL')
     }
 
     stages {
@@ -40,14 +37,14 @@ pipeline {
         stage('Type Check') {
             steps {
                 // Run TypeScript type checking
-                sh 'pnpm exec tsc --noEmit'
+                sh 'pnpm type-check'
             }
         }
 
         stage('Generate Prisma Client') {
             steps {
                 // Generate Prisma client based on schema
-                sh 'npx prisma generate'
+                sh 'pnpm prisma generate'
             }
         }
 
@@ -56,7 +53,7 @@ pipeline {
                 // Set test database URL
                 withEnv(['DATABASE_URL=$DEV_DATABASE_URL']) {
                     // Run tests (when implemented)
-                    sh 'echo "Tests would run here - to be implemented"'
+                    echo 'Tests will be implemented later'
                     // sh 'pnpm test'
                 }
             }
@@ -65,7 +62,7 @@ pipeline {
         stage('Build') {
             steps {
                 // Build the Next.js application
-                sh 'pnpm run build'
+                sh 'pnpm build'
             }
         }
 
@@ -76,12 +73,10 @@ pipeline {
             steps {
                 // Apply database migrations to development
                 withEnv(['DATABASE_URL=$DEV_DATABASE_URL']) {
-                    sh 'npx prisma migrate deploy'
+                    sh 'echo "Deploying to development environment"'
+                    sh 'DATABASE_URL=$DEV_DATABASE_URL pnpm prisma migrate deploy'
+                    sh 'pnpm deploy:dev'
                 }
-                
-                // Deploy to development environment
-                sh 'echo "Deploying to development environment"'
-                // Add your deployment commands here
             }
         }
 
@@ -92,12 +87,10 @@ pipeline {
             steps {
                 // Apply database migrations to staging
                 withEnv(['DATABASE_URL=$STAGING_DATABASE_URL']) {
-                    sh 'npx prisma migrate deploy'
+                    sh 'echo "Deploying to staging environment"'
+                    sh 'DATABASE_URL=$STAGING_DATABASE_URL pnpm prisma migrate deploy'
+                    sh 'pnpm deploy:staging'
                 }
-                
-                // Deploy to staging environment
-                sh 'echo "Deploying to staging environment"'
-                // Add your deployment commands here
             }
         }
 
@@ -107,31 +100,26 @@ pipeline {
             }
             steps {
                 // Confirm production deployment (manual step)
-                input message: 'Deploy to production?', ok: 'Deploy'
+                input message: 'Deploy to production?'
                 
                 // Apply database migrations to production
                 withEnv(['DATABASE_URL=$PRODUCTION_DATABASE_URL']) {
-                    sh 'npx prisma migrate deploy'
+                    sh 'echo "Deploying to production environment"'
+                    sh 'DATABASE_URL=$PRODUCTION_DATABASE_URL pnpm prisma migrate deploy'
+                    sh 'pnpm deploy:prod'
                 }
-                
-                // Deploy to production environment
-                sh 'echo "Deploying to production environment"'
-                // Add your deployment commands here
             }
         }
     }
 
     post {
         always {
-            // Clean up workspace
-            cleanWs()
+            echo 'Pipeline execution completed'
         }
-        
         success {
             // Notify on success
             echo 'Build and deployment successful!'
         }
-        
         failure {
             // Notify on failure
             echo 'Build or deployment failed!'
