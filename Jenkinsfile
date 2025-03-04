@@ -76,8 +76,12 @@ pipeline {
                     def buildNumber = env.BUILD_NUMBER ?: "local"
                     def dockerTag = "${branch}-${buildNumber}"
                     
-                    // Build Docker image
-                    sh "docker build -t fireworks-app:${dockerTag} ."
+                    // Build Docker image with environment variables passed as build args
+                    sh """
+                    docker build \
+                      --build-arg NEXT_PUBLIC_API_URL=\${NEXT_PUBLIC_API_URL} \
+                      -t fireworks-app:${dockerTag} .
+                    """
                 }
             }
         }
@@ -134,9 +138,11 @@ pipeline {
 
     post {
         always {
-            cleanWs()
-            // Clean up Docker images to prevent disk space issues
-            sh 'docker system prune -f || true'
+            node(null) {
+                cleanWs()
+                // Clean up Docker images to prevent disk space issues
+                sh 'docker system prune -f || true'
+            }
         }
         success {
             echo 'Build and deployment successful!'
