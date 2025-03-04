@@ -27,16 +27,10 @@ pipeline {
             }
         }
 
-        stage('Lint') {
+        stage('Lint & Type Check') {
             steps {
-                // Run ESLint
+                // Run ESLint and TypeScript type checking
                 sh 'pnpm run lint'
-            }
-        }
-
-        stage('Type Check') {
-            steps {
-                // Run TypeScript type checking
                 sh 'pnpm type-check'
             }
         }
@@ -54,7 +48,6 @@ pipeline {
                 withEnv(['DATABASE_URL=$DEV_DATABASE_URL']) {
                     // Run tests (when implemented)
                     echo 'Tests will be implemented later'
-                    // sh 'pnpm test'
                 }
             }
         }
@@ -66,62 +59,44 @@ pipeline {
             }
         }
 
-        stage('Deploy to Development') {
-            when {
-                branch 'develop'
-            }
+        stage('Deploy') {
             steps {
-                // Apply database migrations to development
-                withEnv(['DATABASE_URL=$DEV_DATABASE_URL']) {
-                    sh 'echo "Deploying to development environment"'
-                    sh 'DATABASE_URL=$DEV_DATABASE_URL pnpm prisma migrate deploy'
-                    sh 'pnpm deploy:dev'
-                }
-            }
-        }
-
-        stage('Deploy to Staging') {
-            when {
-                branch 'staging'
-            }
-            steps {
-                // Apply database migrations to staging
-                withEnv(['DATABASE_URL=$STAGING_DATABASE_URL']) {
-                    sh 'echo "Deploying to staging environment"'
-                    sh 'DATABASE_URL=$STAGING_DATABASE_URL pnpm prisma migrate deploy'
-                    sh 'pnpm deploy:staging'
-                }
-            }
-        }
-
-        stage('Deploy to Production') {
-            when {
-                branch 'main'
-            }
-            steps {
-                // Confirm production deployment (manual step)
-                input message: 'Deploy to production?'
-                
-                // Apply database migrations to production
-                withEnv(['DATABASE_URL=$PRODUCTION_DATABASE_URL']) {
-                    sh 'echo "Deploying to production environment"'
-                    sh 'DATABASE_URL=$PRODUCTION_DATABASE_URL pnpm prisma migrate deploy'
-                    sh 'pnpm deploy:prod'
+                script {
+                    if (env.BRANCH_NAME == 'develop') {
+                        // Deploy to development
+                        withEnv(['DATABASE_URL=$DEV_DATABASE_URL']) {
+                            sh 'echo "Deploying to development environment"'
+                            sh 'pnpm prisma migrate deploy'
+                            sh 'pnpm deploy:dev'
+                        }
+                    } else if (env.BRANCH_NAME == 'staging') {
+                        // Deploy to staging
+                        withEnv(['DATABASE_URL=$STAGING_DATABASE_URL']) {
+                            sh 'echo "Deploying to staging environment"'
+                            sh 'pnpm prisma migrate deploy'
+                            sh 'pnpm deploy:staging'
+                        }
+                    } else if (env.BRANCH_NAME == 'main') {
+                        // Deploy to production
+                        input message: 'Deploy to production?'
+                        withEnv(['DATABASE_URL=$PRODUCTION_DATABASE_URL']) {
+                            sh 'echo "Deploying to production environment"'
+                            sh 'pnpm prisma migrate deploy'
+                            sh 'pnpm deploy:prod'
+                        }
+                    } else {
+                        echo "Branch ${env.BRANCH_NAME} does not deploy automatically"
+                    }
                 }
             }
         }
     }
 
     post {
-        always {
-            echo 'Pipeline execution completed'
-        }
         success {
-            // Notify on success
             echo 'Build and deployment successful!'
         }
         failure {
-            // Notify on failure
             echo 'Build or deployment failed!'
         }
     }

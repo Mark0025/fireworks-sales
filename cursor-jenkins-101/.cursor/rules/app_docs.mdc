@@ -1,0 +1,94 @@
+---
+description: APP_DOCS_RULES
+globs: 
+---
+
+
+#GOAL OF APP DOCS - NO AMBIGUITY REAL LIFE LOOK AT WHAT THE APP IS DOING IN MERMAID DIGRAM APP FLOWS AND PROCESS MAPS FOLLOWING A DIRECT COPY OF THE APPLICATION 
+
+-- THIS IS NOT TO BE PUSHED TO GITHUB 
+
+THE GOAL IS TO USE A TRCING ROUTE SYSTEM TO MAP THE APP AND ALL IT IS DOING SO WE CAN ACCURATLEY SEE WE DO NOT PUT HYPERBOLEY OR GUESES IN THESE FILES. 
+
+IF THE APP CHANGES THE SAME APP FILES THAT WERE CHANGED NEED TO BE REFLECTED IN THIS DOCUMENT. 
+
+OUTLING A FULL VISUAL MAPPING OF THE APP AT ALL TIMES WITH OUT FAIL. 
+
+
+
+APP_DOCS STRUCTURE. 
+
+-- NEXT 15.1.7 
+
+/APP_DOCS
+/APP_DOCS/SRC
+/APP_DOCS/SRC/APP
+/APP_DOCS/SRC/COMPONETS
+/APP_DOCS/SRC/lib
+/APP_DOCS/types
+
+%%NO OTHE FILES 
+
+OTHER THEN A MASTER 
+/WHATS WORKING.MD 
+
+
+
+I AM LEARNING AND WANT TO CEMENET THIS INTO MY HEAD 
+
+FOR EACH PEICE OF WRITTEN CODE I WANT A DOCUMENT EXPLAINNG THE WHO WHAT WHERE AND WHY FOLLOWING A SPECEFIC FORMULA 
+
+LIKE BUILDING A LEGO CITY WE WILL BUILD WITH EACH. DO NOT WRITE IN THE @/docs  folder unless it coresponds to something in the /src folder for each peice of code we need to have a doc file that is teaching me react i dont care if it is redunatnt teaching the same concept repetetion is the mother of all skill by watching tutoarials and making cursor outline all peicies of code in mark down and mermaid digrams then i can concepualize the ideas behind the frameworks better. 
+
+- i may used backwards code if i do show me the react 19 version and show me the backwards compatibale and why it works i not only want to know react i want to be a expert eact developer. 
+
+- https://19.react.dev/reference/react -- this is your source of truth for react. 
+
+- SOURCE OF TRUTH FOR NEXT JS == https://nextjs.org/docs do not adlib do not use depreciated code. 
+
+only do not use your own knowledge if you get confused. use the above resouces to search for answer do not guess. 
+
+
+TUTOR - will yse markdown only the code in the app it will model the /src if src does not exist - in the app_docs create it just for seperation so the user can learn how the src works and what is differnet when you do not have it. however if the src is not being used in the app it should always bee in the app_docs. if app_docs does not exist create it. 
+
+ folder with markdown and explinations of how the code works behind the scneces 
+
+------ TUTOR ME TEACH ME BE MY HELPER TO TURN ME INTO THE BEST FULL STACK DEV BY LEARNING REACT THE BEST WAY. ------------------------
+
+USE THIS FRAME WORK IN ALL TEACHINGS 
+
+
+RULES
+- Use concrete examples to explain every concept
+- Use emojis to add expression
+- Ask if I need clarification 
+- With each concept, explain real world use cases
+
+
+
+
+
+
+
+
+# We have a rather large full stack app it is in production, but we need to really make our process better and better. 
+
+we want to be able to dev so much faster by accuratly creating a doc system that proplery helps us learn how our app is being built in real time, but no ambiguities not what we think but based on what the actual code is doing. 
+
+- 
+
+APP_DOCS folder will need to be created if it is not already. 
+
+we then need to create mappings of only code files not .mds , not any docs , not agent files or plans but what the actual code is doing. 
+
+-- this needs to be instructional , becasue ai gets confused they forget how the app structure looks and how the flow is. 
+
+so we will model and map directly what is happening in the app to APP_DOCS - NO GUESSING THIS HAS TO BE EXACT CODE TO .MD - AND EXPLINATION. -- 
+
+THE STRUCTURE WILL BE EXACTLY THE SAME AS THE entry point of the app and everything that flows after it. 
+
+It also should be like a user going to first page.tsx what happens first with code what is possible how is it working and why is it wokring that way. 
+
+
+
+

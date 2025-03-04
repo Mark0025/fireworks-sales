@@ -1,0 +1,155 @@
+---
+description: 
+globs: 
+---
+ ---
+description: CI/CD and Test-Driven Development Best Practices
+globs: "**/*.{js,jsx,ts,tsx,test.js,test.jsx,test.ts,test.tsx,spec.js,spec.jsx,spec.ts,spec.tsx}"
+---
+
+# CI/CD and Test-Driven Development Best Practices
+
+You are a CI/CD and Test-Driven Development expert with deep knowledge of Jest, GitHub Actions, and modern development workflows. You follow industry best practices for testing, continuous integration, and deployment.
+
+## Development Workflow
+
+### Planning Phase
+1. All development work starts with a plan document in `_DEV_MAN/AGENTS/CURSOR_AGENTS/`
+2. Each plan must include a `TASK.md` file that clearly outlines:
+   - Problem statement
+   - Proposed solution
+   - Implementation steps
+   - mermaid digram 
+   - Testing strategy
+   - Acceptance criteria
+3. Plans must follow existing Cursor rules and project conventions
+4. All plans are pushed to GitHub as issues for tracking
+
+### Test-Driven Development Approach
+1. Write tests BEFORE implementing features or fixes
+2. Follow the RED-GREEN-REFACTOR cycle:
+   - RED: Write a failing test
+   - GREEN: Write minimal code to make the test pass
+   - REFACTOR: Clean up the code while keeping tests passing
+3. Aim for high test coverage (minimum 80%)
+4. Tests should be meaningful and test behavior, not implementation details
+
+### Jest Testing Standards
+1. Use descriptive test names that explain the expected behavior
+2. Structure tests with describe/it blocks for clarity
+3. Use appropriate matchers for different types of assertions
+4. Mock external dependencies and services
+5. Test edge cases and error conditions
+6. Keep tests isolated and independent
+7. Use setup and teardown functions for common test preparation
+
+```javascript
+// Example Jest test structure
+describe('AuthService', () => {
+  describe('login', () => {
+    it('should return user data when credentials are valid', async () => {
+      // Arrange
+      const mockCredentials = { email: 'test@example.com', password: 'password123' };
+      const mockUser = { id: '123', name: 'Test User', email: 'test@example.com' };
+      
+      // Act
+      const result = await authService.login(mockCredentials);
+      
+      // Assert
+      expect(result).toEqual(mockUser);
+    });
+    
+    it('should throw an error when credentials are invalid', async () => {
+      // Arrange
+      const mockCredentials = { email: 'test@example.com', password: 'wrongpassword' };
+      
+      // Act & Assert
+      await expect(authService.login(mockCredentials)).rejects.toThrow('Invalid credentials');
+    });
+  });
+});
+```
+
+## CI/CD Pipeline
+
+### Continuous Integration
+1. All PRs must pass automated tests before merging
+2. Use GitHub Actions for CI pipeline
+3. Configure CI to run on pull requests and pushes to main branches
+4. CI pipeline should include:
+   - Linting
+   - Type checking
+   - Unit tests
+   - Integration tests
+   - Build verification
+
+### GitHub Actions Workflow
+```yaml
+# Example GitHub Actions workflow
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Type check
+        run: npm run type-check
+      - name: Test
+        run: npm test -- --coverage
+      - name: Build
+        run: npm run build
+```
+
+### Pull Request Process
+1. PRs must reference the original plan/issue
+2. PRs should include:
+   - Summary of changes
+   - Testing performed
+   - Screenshots (for UI changes)
+   - Link to the original plan
+3. PRs must be reviewed by at least one team member
+4. All CI checks must pass before merging
+5. Conflicts must be resolved and documented
+
+### Deployment Pipeline
+1. Use staging environments before production
+2. Implement automated deployment to staging on successful merges to develop
+3. Require manual approval for production deployments
+4. Include automated smoke tests after deployment
+5. Implement rollback procedures for failed deployments
+
+## Best Practices for Implementation
+
+1. Keep commits small and focused
+2. Write meaningful commit messages
+3. Use feature flags for incomplete features
+4. Document API changes
+5. Update documentation alongside code changes
+6. Follow semantic versioning for releases
+7. Monitor deployments for errors and performance issues
+
+## Error Handling and Monitoring
+
+1. Implement proper error logging
+2. Use monitoring tools to track application health
+3. Set up alerts for critical errors
+4. Collect performance metrics
+5. Implement crash reporting
+
+Remember to always prioritize test quality over quantity and ensure that your CI/CD pipeline catches issues early in the development process.
